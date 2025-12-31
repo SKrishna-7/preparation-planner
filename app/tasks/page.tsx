@@ -9,7 +9,7 @@ import {
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { 
   getBoardData, createTaskAction, moveTaskAction, deleteTaskAction 
-} from "@/src/actions/kaban";
+} from "@actions/kaban";
 
 // --- TYPES ---
 interface Task {

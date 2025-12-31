@@ -11,12 +11,14 @@ import {
   Moon,
   ListTodo,
   X,
-  Zap // <--- 1. IMPORT ZAP ICON
+  Zap, // <--- 1. IMPORT ZAP ICON
+  
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { SignedIn, SignedOut, SignOutButton, SignInButton, UserButton } from "@clerk/nextjs";
+import { LogOut, LogIn, User } from "lucide-react";
 
-// 2. ADD REVISION ZONE HERE
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: BookOpen, label: "My Courses", href: "/courses" },
@@ -38,62 +40,83 @@ export function Sidebar({ onClose }: SidebarProps) {
   useEffect(() => setMounted(true), []);
 
   return (
-    <aside className="h-screen w-64 bg-sidebar border-r border-border flex flex-col fixed left-0 top-0 transition-colors duration-300 z-50">
-      
-      {/* Logo Section */}
-      <div className="p-6 flex items-center justify-between">
+   <aside className="h-screen w-64 bg-black border-r border-zinc-900 flex flex-col fixed left-0 top-0 z-50">
+      <div className="p-8 flex items-center justify-between border-b border-zinc-900/50">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-xl bg-accent-blue flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-white font-bold text-lg">P</span>
+          <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/10">
+            <span className="text-white font-black text-xl italic text-shadow-sm">P</span>
           </div>
-          <h1 className="text-lg font-bold text-text-primary tracking-tight">PrepOS</h1>
+          <h1 className="text-xl font-black text-white tracking-tighter uppercase italic">PrepOS</h1>
         </div>
-        
-        {onClose && (
-          <button onClick={onClose} className="md:hidden text-text-secondary hover:text-text-primary">
-            <X size={20} />
-          </button>
-        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
+      <nav className="flex-1 px-4 space-y-2 mt-8 overflow-y-auto scrollbar-thin">
         {menuItems.map((item) => {
-          const isActive = item.href === "/" 
-            ? pathname === "/" 
-            : pathname.startsWith(item.href);
-
+          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={onClose}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all
                 ${isActive 
-                  ? "bg-surface-highlight text-text-primary border border-border-light shadow-sm" 
-                  : "text-text-secondary hover:bg-surface hover:text-text-primary"
+                  ? "bg-zinc-900 text-white border border-zinc-800 shadow-xl italic" 
+                  : "text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-200"
                 }
               `}
             >
-              <item.icon size={18} className={item.label === "Revision Zone" ? "group-hover:text-yellow-500 transition-colors" : ""} />
-              {item.label}
+              <item.icon size={16} /> {item.label}
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border">
-        {mounted && (
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-center w-full p-2 rounded-lg text-text-secondary hover:bg-surface hover:text-accent-blue transition-colors"
-          >
-            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-        )}
+  <div className="mt-auto border-t border-zinc-900 bg-black/50 backdrop-blur-md">
+  
+  {/* UI FOR LOGGED IN USERS */}
+  <SignedIn>
+    <div className="p-4 space-y-2">
+      {/* Mini Profile Section */}
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 mb-2">
+        <UserButton 
+          afterSignOutUrl="/?message=logout-success" 
+          appearance={{
+            elements: {
+              userButtonAvatarBox: "w-8 h-8 rounded-lg"
+            }
+          }}
+        />
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-white uppercase tracking-tight">Active Session</span>
+          <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Pro Account</span>
+        </div>
       </div>
+
+      {/* Actual Logout Button */}
+      <SignOutButton>
+  {/* Remove signOutCallback from here */}
+  <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:bg-red-500/10 hover:text-red-500 transition-all group">
+    <LogOut size={16} className="group-hover:-translate-x-1 transition-transform" />
+    Sign Out Terminal
+  </button>
+</SignOutButton>
+    </div>
+  </SignedIn>
+
+  {/* UI FOR LOGGED OUT USERS */}
+  <SignedOut>
+    <div className="p-4">
+      <SignInButton mode="modal">
+        <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 transition-all">
+          <LogIn size={16} />
+          Initialize Login
+        </button>
+      </SignInButton>
+    </div>
+  </SignedOut>
+</div>
     </aside>
   );
 }

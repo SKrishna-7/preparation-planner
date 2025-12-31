@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { 
   getDeckDetails, createFlashcardAction, deleteFlashcardAction, updateMasteryAction 
-} from "@/src/actions/flashcard";
+} from "@actions/flashcard";
 
 // --- TYPES ---
 interface Flashcard {

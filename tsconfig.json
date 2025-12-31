@@ -22,11 +22,13 @@
         "name": "next"
       }
     ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
+   "paths": {
+     "@/*": ["./*"],
+      // You can also create specific aliases for clarity
+      "@lib/*": ["./lib/*"],
+      "@actions/*": ["./src/actions/*"],
+      "@components/*": ["./src/components/*"]
+    },
   },
   "include": [
     "next-env.d.ts",

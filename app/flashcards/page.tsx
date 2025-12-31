@@ -5,7 +5,7 @@ import {
   Zap, Plus, Trash2, BrainCircuit, Layers, Search, Play, Loader2 
 } from "lucide-react";
 import Link from "next/link";
-import { getDecks, createDeckAction, deleteDeckAction } from "@/src/actions/flashcard";
+import { getDecks, createDeckAction, deleteDeckAction } from "@actions/flashcard";
 
 export default function FlashcardsPage() {
   const [decks, setDecks] = useState<any[]>([]);

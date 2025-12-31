@@ -12,7 +12,7 @@ import {
   saveNoteAction, 
   saveResourceAction, 
   completeTopicAction 
-} from "@/src/actions/focus-room";
+} from "@actions/focus-room";
 
 type ResourceMode = 'video' | 'whiteboard' | 'browser';
 
