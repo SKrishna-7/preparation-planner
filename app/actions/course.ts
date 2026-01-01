@@ -37,6 +37,8 @@ export async function getCourses() {
         progress,
         totalModules: course.modules.length,
         completedModules: course.modules.filter(m => m.status === 'completed').length,
+          startDate: course.startDate ?? undefined,
+  endDate: course.endDate ?? undefined,
       };
     });
   } catch (error) {
