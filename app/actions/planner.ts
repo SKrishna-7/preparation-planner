@@ -103,9 +103,10 @@ export async function toggleTaskStatus(taskId: string, isCompleted: boolean) {
     if (!userId) return;
 
     await db.task.update({
-      where: { id: taskId },
-      data: { status: isCompleted ? "DONE" : "TODO" }
+  where: { id: taskId },
+  data: { completed: isCompleted}
     });
+
 
     if (isCompleted) {
       await trackActivity(userId);
