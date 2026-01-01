@@ -19,7 +19,8 @@ interface Course {
   progress: number;
   totalModules: number;
   completedModules: number;
-  lastAccessed: string;
+  lastAccessed ?:Date | string;
+  updatedAt: Date;
   color: string;
   icon: string;
   startDate?: string | Date; // Added optional date types

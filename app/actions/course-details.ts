@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "../../lib/prisma";
+import { db } from "@lib/prisma";
 import { revalidatePath } from "next/cache";
 import { syncGoalWithCourse } from "./goals";
 import { auth } from "@clerk/nextjs/server";
@@ -32,12 +32,8 @@ export async function getCourseDetails(courseId: string) {
       }
     });
 
-    const events = await db.event.findMany({
-      where: { userId: userId },
-      orderBy: { startTime: 'asc' }
-    });
-
-    return { course, events };
+  
+    return { course };
   } catch (error) {
     console.error("GET_COURSE_DETAILS_ERROR:", error);
     return { course: null, events: [] };

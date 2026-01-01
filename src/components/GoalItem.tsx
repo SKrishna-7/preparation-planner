@@ -5,7 +5,15 @@ import { Trash2, Target, Layers, Loader2, Clock, ArrowUpRight } from "lucide-rea
 import Link from "next/link";
 import { deleteGoalAction } from "@actions/goals";
 
-export function GoalItem({ goal, courseName, onAction }: { goal: any; courseName?: string, onAction?: () => void }) {
+export function GoalItem({
+  goal,
+  courseName,
+  onToggle
+}: {
+  goal: any;
+  courseName?: string;
+  onToggle: (id: string) => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const progress = goal.target > 0 ? Math.round((goal.current / goal.target) * 100) : 0;
   
@@ -17,13 +25,12 @@ export function GoalItem({ goal, courseName, onAction }: { goal: any; courseName
     if (confirm("Decommission this strategic objective?")) {
       startTransition(async () => {
         await deleteGoalAction(goal.id);
-        if (onAction) onAction();
       });
     }
   };
 
   return (
-    <Link href={`/goals/${goal.id}`}>
+    <Link href={`/goals/${goal.id}`}  onClick={() => onToggle(goal.id)}>
       <div className={`group relative bg-[#090909] border border-zinc-900 rounded-[1.5rem] p-6 hover:bg-[#0c0c0c] hover:border-zinc-800 transition-all duration-500 cursor-pointer shadow-2xl ${isPending ? 'opacity-50' : ''}`}>
         <div className="flex justify-between items-start mb-4">
           <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded ${daysRemaining < 3 ? 'bg-red-500/10 text-red-500 animate-pulse' : 'text-zinc-600'}`}>

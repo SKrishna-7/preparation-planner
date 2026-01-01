@@ -3,6 +3,7 @@
 import { db } from "../../lib/prisma"; // Ensure your path to db is correct
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
+import { trackActivity } from "./activity-logger";
 
 // 1. GET ALL COURSES (Filtered by User)
 export async function getCourses() {
@@ -48,39 +49,42 @@ export async function getCourses() {
 export async function createCourseAction(
   title: string, 
   description: string, 
-  startDateStr: string, 
-  endDateStr: string    
+  startDateStr?: string | null, 
+  endDateStr?: string | null
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
+    if (!userId) return { success: false, error: "Unauthorized" };
 
+    // Convert string dates to Date objects if they exist
     const startDate = startDateStr ? new Date(startDateStr) : null;
     const endDate = endDateStr ? new Date(endDateStr) : null;
 
     await db.course.create({
       data: {
         title,
-        description,
+        description: description || "",
         startDate,
         endDate,
-        userId, // <--- LINK TO CLERK USER
+        userId: userId, // Maps to clerkId in your User model
         progress: 0,
-        color: "bg-blue-500", 
+        totalModules: 0,
+        completedModules: 0,
+        color: "bg-blue-400", 
         icon: "📚",
       },
     });
 
+    // Revalidate to update the Dashboard and Course list
+    revalidatePath("/");
     revalidatePath("/courses");
-    revalidatePath("/"); // Also update dashboard
+    
     return { success: true };
-
   } catch (error) {
     console.error("CREATE COURSE ERROR:", error);
     return { success: false };
   }
 }
-
 // 3. DELETE (With User check)
 export async function deleteCourseAction(courseId: string) {
   try {
@@ -136,4 +140,45 @@ export async function updateCourseAction(
     console.error("UPDATE COURSE ERROR:", error);
     return { success: false };
   }
+}
+
+
+export async function completeTopic(topicId: string) {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  await db.topic.update({
+    where: { id: topicId },
+    data: {
+      isCompleted: true,
+      completedAt: new Date()
+    }
+  });
+
+  // Activity tracking
+  await trackActivity(userId);
+
+  revalidatePath("/");
+}
+
+export async function toggleTopicCompletion(
+  topicId: string,
+  completed: boolean
+) {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  await db.topic.update({
+    where: { id: topicId },
+    data: {
+      isCompleted: completed,
+      completedAt: completed ? new Date() : null,
+    },
+  });
+
+  if (completed) {
+    await trackActivity(userId);
+  }
+
+  revalidatePath("/");
 }

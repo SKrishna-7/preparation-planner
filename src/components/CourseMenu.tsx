@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MoreHorizontal, Trash2, Edit, Loader2 } from "lucide-react";
-import { deleteCourseAction } from "@/src/actions/course";
+import { deleteCourseAction } from "@actions/course";
 
 interface CourseMenuProps {
   courseId: string;

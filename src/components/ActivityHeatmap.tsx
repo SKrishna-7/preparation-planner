@@ -37,21 +37,52 @@ export function ActivityHeatmap({ activityData }: { activityData: Record<string,
 
       {/* The Grid */}
       <div className="flex flex-wrap gap-2">
-        {days.map((date) => {
-          const count = activityData[date] || 0;
-          return (
-            <div 
-              key={date}
-              title={`${date}: ${count} lessons`}
-              className={`w-3.5 h-3.5 rounded-sm border transition-all duration-500 ${
-                count === 0 ? 'bg-zinc-950 border-zinc-900' : 
-                count === 1 ? 'bg-emerald-500/20 border-emerald-500/10' :
-                count === 2 ? 'bg-emerald-500/50 border-emerald-500/20' :
-                'bg-emerald-500 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
-              }`}
-            />
-          );
-        })}
+        {/* Inside your days.map loop in ActivityHeatmap.tsx */}
+{days.map((date) => {
+  const count = activityData[date] || 0;
+  
+  // Logic to determine color intensity
+  const getLevel = (val: number) => {
+    if (val === 0) return 'level-0';
+    if (val <= 2) return 'level-1';
+    if (val <= 5) return 'level-2';
+    return 'level-3';
+  };
+
+  const level = getLevel(count);
+
+  return (
+    <div key={date} className="relative group">
+      {/* THE DATA SQUARE */}
+      <div 
+        className={`w-3.5 h-3.5 rounded-[3px] border transition-all duration-300 
+          group-hover:scale-150 group-hover:z-50 cursor-none
+          ${level === 'level-0' ? 'bg-zinc-950 border-zinc-900' : 
+            level === 'level-1' ? 'bg-emerald-500/20 border-emerald-500/10' :
+            level === 'level-2' ? 'bg-emerald-500/50 border-emerald-500/20' :
+            'bg-emerald-500 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+          }`}
+      />
+
+      {/* THE HOVER CHIP (Shows Count) */}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-none 
+        hidden group-hover:flex flex-col items-center z-[100] animate-in fade-in slide-in-from-bottom-1 duration-200">
+        
+        <div className="bg-black border border-zinc-800 px-2.5 py-1.5 rounded-md shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-center">
+          <span className="text-[10px] font-black text-white italic leading-none">
+            {count} {count === 1 ? 'POINT' : 'POINTS'}
+          </span>
+          <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter mt-1">
+             {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+
+        {/* HUD pointer arrow */}
+        <div className="w-1.5 h-1.5 bg-black border-r border-b border-zinc-800 rotate-45 -mt-1" />
+      </div>
+    </div>
+  );
+})}
       </div>
       
       <p className="mt-6 text-[9px] font-black text-zinc-800 uppercase tracking-[0.2em] italic">

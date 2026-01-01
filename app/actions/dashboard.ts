@@ -84,6 +84,7 @@
 
 
 "use server"; 
+
 import { db } from "../../lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 export async function getDashboardStats() {
@@ -94,29 +95,55 @@ export async function getDashboardStats() {
     // If no user is logged in, return null (Middleware usually prevents this anyway)
     if (!userId) return null;
 
+  console.log("USER ID:", userId);
+    const dbUser = await db.user.findUnique({ where: { clerkId: userId } });
+    const now = new Date();
+    let currentStreak = dbUser?.streak || 0;
+
+    if (dbUser) {
+      const lastLogin = new Date(dbUser.lastLogin);
+      const diffInDays = Math.floor((now.getTime() - lastLogin.getTime()) / (1000 * 3600 * 24));
+
+      if (diffInDays === 1) {
+        currentStreak += 1; // Logged in consecutive day
+      } else if (diffInDays > 1) {
+        currentStreak = 1; // Streak broken
+      }
+    }
+
 
     const user = await db.user.upsert({
       where: { clerkId: userId },
       update: {
-        name: `${userObject?.firstName} ${userObject?.lastName}`,
-        imageUrl: userObject?.imageUrl,
-      },
+      name: `${userObject?.firstName || ""} ${userObject?.lastName || ""}`.trim() || userObject?.username || "Explorer",        imageUrl: userObject?.imageUrl,
+      streak: currentStreak,
+      lastLogin: now,
+    
+    },
       create: {
         clerkId: userId,
         email: userObject?.emailAddresses[0].emailAddress || "",
         name: `${userObject?.firstName} ${userObject?.lastName}`,
         imageUrl: userObject?.imageUrl,
         plan: "PRO", // Defaulting you to PRO for testing
+        streak:1,
       },
     });
-    // 2. Fetch ONLY this user's Courses
-    const allCourses = await db.course.findMany({
-      where: { userId: userId },
-      include: {
-        modules: { include: { topics: true }, orderBy: { id: 'asc' } }
-      },
-      orderBy: { updatedAt: 'desc' },
+
+
+    const activities = await db.activity.findMany({
+      where: {
+        userId,
+        date: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) }
+      }
     });
+    // Convert activity array to a record: { "YYYY-MM-DD": count }
+  const activityData: Record<string, number> = {};
+    activities.forEach((act) => {
+      const dateKey = act.date.toISOString().split('T')[0];
+      activityData[dateKey] = (activityData[dateKey] || 0) + act.count;
+    });
+
 
     // 3. Fetch ONLY this user's Goals
     const goals = await db.goal.findMany({
@@ -127,6 +154,24 @@ export async function getDashboardStats() {
       orderBy: { createdAt: 'desc' },
       take: 4 
     });
+    console.log(goals)
+
+     const plannerEvents = await db.scheduleEvent.findMany({
+  where: { userId },
+  orderBy: { startTime: 'asc' }
+});
+
+     const allCourses = await db.course.findMany({
+      where: { userId: userId },
+      include: {
+        // Deep include ensures topics and modules are available for the Dialog
+        modules: { include: { topics: true }, orderBy: { id: 'asc' } }
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+      //  console.log("active courses " , allCourses )
+
 
     // --- TRANSFORMATION LOGIC (Keep as you had it) ---
     const transformedCourses = allCourses.map(course => {
@@ -156,9 +201,9 @@ export async function getDashboardStats() {
       };
     });
 
-    const activeCourses = transformedCourses.filter(c => c.progress > 0 && c.progress < 100).slice(0, 4);
+    const activeCourses = transformedCourses.filter(c => c.progress < 100).slice(0, 6);    
     const recentCourse = transformedCourses.length > 0 ? transformedCourses[0] : null;
-
+   
     // 4. Fetch ONLY this user's Daily Tasks
     const dailyTasks = await db.task.findMany({
       where: {
@@ -168,11 +213,24 @@ export async function getDashboardStats() {
       take: 3
     });
 
+
+
     return {
+      user:{
+        name: user.name,
+        streak: user.streak,
+        imageUrl: user.imageUrl
+      },
+      activityData,
       activeCourses,
       recentCourse,
+      allCourses,
       goals,
-      dailyTasks
+      dailyTasks,
+      plannerEvents: plannerEvents.map(e => ({
+    ...e,
+    date: new Date(e.date).toDateString()
+  }))
     };
   } catch (error) {
     console.error("GET_DASHBOARD_STATS_ERROR:", error);

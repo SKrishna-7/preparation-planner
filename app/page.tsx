@@ -1,10 +1,32 @@
-import { Suspense } from "react";
-import DashboardContent from "@/src/DashboardContent"; // Move your UI here
+// app/page.tsx
+import DashboardContent from "./DashboardContent";
+import { getDashboardStats } from "@actions/dashboard";
+import { getApplications } from "@actions/application";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [stats, applications] = await Promise.all([
+    getDashboardStats(),
+    getApplications(),
+  ]);
+
+  // Safety guard: never pass null to client
+  const safeStats = stats ?? {
+    user: null,
+    activityData: {},
+    recentCourse: null,
+    goals: [],
+    activeCourses: [],
+    allCourses:[],
+    plannerEvents: [],  };
+
   return (
-    <Suspense fallback={<div>Initializing System...</div>}>
-      <DashboardContent />
-    </Suspense>
+    <DashboardContent
+      initialData={{
+        ...safeStats,
+        appCount: applications?.length ?? 0,
+      }}
+    />
   );
 }

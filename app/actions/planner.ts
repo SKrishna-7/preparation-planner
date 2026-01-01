@@ -3,6 +3,7 @@
 import { db } from "../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
+import { trackActivity } from "./activity-logger";
 
 export async function getPlannerEvents() {
   try {
@@ -50,23 +51,26 @@ export async function addPlannerEvent(data: {
     return { success: false };
   }
 }
-
 export async function toggleEventStatus(id: string, completed: boolean) {
   try {
     const { userId } = await auth();
     if (!userId) return { success: false };
 
-    // Use updateMany to ensure ownership check
-    const result = await db.scheduleEvent.updateMany({
+    // Update the event
+    const result = await db.scheduleEvent.update({
       where: { 
         id, 
-        userId // Security: User can only toggle their own events
+        userId // Ensure ownership
       },
       data: { completed }
     });
 
-    if (result.count === 0) return { success: false, error: "Event not found" };
+    // TRIGGER: If the schedule block is marked as finished, increment activity
+    if (completed) {
+      await trackActivity(userId);
+    }
 
+    revalidatePath("/"); // Revalidate root for the heatmap
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
@@ -80,15 +84,11 @@ export async function deletePlannerEvent(id: string) {
     const { userId } = await auth();
     if (!userId) return { success: false };
 
-    // deleteMany is safer as it won't crash if the record doesn't exist 
-    // and naturally handles the userId ownership check.
     await db.scheduleEvent.deleteMany({
-      where: { 
-        id, 
-        userId 
-      }
+      where: { id, userId }
     });
 
+    revalidatePath("/");
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
@@ -96,3 +96,24 @@ export async function deletePlannerEvent(id: string) {
     return { success: false };
   }
 }
+
+export async function toggleTaskStatus(taskId: string, isCompleted: boolean) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return;
+
+    await db.task.update({
+      where: { id: taskId },
+      data: { status: isCompleted ? "DONE" : "TODO" }
+    });
+
+    if (isCompleted) {
+      await trackActivity(userId);
+    }
+
+    revalidatePath("/");
+  } catch (error) {
+    console.error("FAILED_TO_TOGGLE_TASK", error);
+  }
+}
+

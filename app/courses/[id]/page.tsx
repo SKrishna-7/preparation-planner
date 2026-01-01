@@ -14,8 +14,14 @@ import {
   getCourseDetails, 
   createModuleAction, updateModuleStatusAction, deleteModuleAction, renameModuleAction,
   createTopicAction, toggleTopicCompletionAction, toggleTopicFocusAction, deleteTopicAction,
-  createEventAction, deleteEventAction, toggleEventAction
-} from "@/src/actions/course-details";
+} from "@actions/course-details";
+
+import {
+  addPlannerEvent,
+  deletePlannerEvent,
+  getPlannerEvents,
+  toggleEventStatus
+} from "@actions/planner";
 
 // --- TYPES ---
 type ModuleStatus = 'pending' | 'in-progress' | 'completed';
@@ -24,6 +30,8 @@ type EventType = "Class" | "Study" | "Test" | "Break" | "Project";
 export default function CourseDetailPage() {
   const params = useParams();
   const courseId = params.id as string;
+  
+  console.log(courseId);
   
   // --- STATE ---
   const [activeTab, setActiveTab] = useState<'syllabus' | 'planner'>('syllabus');
@@ -51,20 +59,35 @@ export default function CourseDetailPage() {
 
   // --- 1. LOAD DATA ---
   const loadData = async () => {
-    const data = await getCourseDetails(courseId);
-    if (data.course) {
-      setCourse(data.course);
-      if (!isLoaded && data.course.modules.length > 0) {
-        setOpenModules({ [data.course.modules[0].id]: true });
+  try {
+    const [courseRes, plannerEvents] = await Promise.all([
+      getCourseDetails(courseId),
+      getPlannerEvents()
+    ]);
+
+    if (courseRes?.course) {
+      setCourse(courseRes.course);
+
+      if (!isLoaded && courseRes.course.modules.length > 0) {
+        setOpenModules({ [courseRes.course.modules[0].id]: true });
       }
     }
-    setEvents(data.events || []);
-    setIsLoaded(true);
-  };
 
-  useEffect(() => {
-    loadData();
-  }, [courseId]);
+    setEvents(plannerEvents ?? []);
+    setIsLoaded(true);
+  } catch (err) {
+    console.error("LOAD_DATA_ERROR", err);
+  }
+};
+
+
+useEffect(() => {
+  if (!courseId) return;
+  loadData();
+}, [courseId]);
+
+
+    console.log(events);
 
   // Click Outside Handler
   useEffect(() => {
@@ -77,7 +100,7 @@ export default function CourseDetailPage() {
   }, []);
 
   // --- ACTIONS ---
-
+  
   // Module Actions
   const handleAddModule = async () => {
     if (!inputText.trim()) return;
@@ -156,32 +179,57 @@ export default function CourseDetailPage() {
   };
 
   // Planner Actions
-  const handleAddEvent = async () => {
-    if (!inputText.trim() || !newEventTime) return;
-    setIsSubmitting(true);
-    const dateKey = currentDate.toISOString().split('T')[0];
-    const newEvent = {
-      title: inputText,
-      subtitle: newEventSubtitle || newEventType,
-      startTime: newEventTime,
-      date: dateKey,
-      type: newEventType
-    };
-    await createEventAction(newEvent, courseId);
+const handleAddEvent = async () => {
+  if (!inputText.trim() || !newEventTime) return;
+
+  const newEvent = {
+    id: crypto.randomUUID(), // temporary
+    title: inputText,
+    subtitle: newEventSubtitle || newEventType,
+    startTime: newEventTime,
+    type: newEventType,
+    date: currentDate.toDateString(),
+    isDone: false,
+  };
+
+  // ⚡ INSTANT UI UPDATE
+  setEvents(prev => [...prev, newEvent]);
+
+  closeModal();
+  setIsSubmitting(true);
+
+  try {
+    await addPlannerEvent({
+      title: newEvent.title,
+      subtitle: newEvent.subtitle,
+      startTime: newEvent.startTime,
+      type: newEvent.type,
+      date: newEvent.date,
+    });
+
+    // sync real DB state
     await loadData();
+  } finally {
     setIsSubmitting(false);
-    closeModal();
-  };
+  }
+};
 
-  const handleDeleteEvent = async (id: string) => {
-    await deleteEventAction(id, courseId);
-    loadData();
-  };
+const handleDeleteEvent = async (id: string) => {
+  setEvents(prev => prev.filter(e => e.id !== id));
+  await deletePlannerEvent(id);
+};
 
-  const handleToggleEvent = async (id: string, currentStatus: boolean) => {
-    await toggleEventAction(id, !currentStatus, courseId);
-    loadData();
-  };
+const handleToggleEvent = async (id: string, current: boolean) => {
+  // Optimistic
+  setEvents(prev =>
+    prev.map(e =>
+      e.id === id ? { ...e, isDone: !current } : e
+    )
+  );
+
+  await toggleEventStatus(id, !current);
+};
+
 
   const changeDate = (days: number) => {
     const newDate = new Date(currentDate);
@@ -190,7 +238,15 @@ export default function CourseDetailPage() {
   };
 
   // --- HELPERS ---
-  const filteredEvents = events.filter(e => e.date === currentDate.toISOString().split('T')[0]);
+const selectedDateKey = currentDate.toDateString();
+
+const filteredEvents = events.filter(
+  e => e.date === selectedDateKey
+);
+
+  console.log(filteredEvents);
+  console.log(currentDate.toDateString())
+  
   const formattedDate = currentDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
   
   const modules = course?.modules || [];

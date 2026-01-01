@@ -9,7 +9,7 @@ import {
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { 
   getApplications, createApplicationAction, updateStatusAction, deleteApplicationAction 
-} from "@/src/actions/application";
+} from "@actions/application";
 
 // --- TYPES ---
 // We map DB fields to UI fields here

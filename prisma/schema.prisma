@@ -319,8 +319,6 @@
 //   updatedAt DateTime @updatedAt
 // }
 
-
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -332,16 +330,21 @@ datasource db {
 
 // --- CORE USER MODEL ---
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  name      String?
-  imageUrl  String?
-  plan      String   @default("FREE")
+  id       String  @id @default(cuid())
+  clerkId  String  @unique
+  email    String  @unique
+  name     String?
+  imageUrl String?
+  plan     String  @default("FREE")
+
+  streak    Int      @default(0)
+  lastLogin DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
+  activities      Activity[]
   courses         Course[]
   goals           Goal[]
   tasks           Task[]
@@ -349,6 +352,16 @@ model User {
   decks           Deck[]
   events          Event[]
   scheduleEvents  ScheduleEvent[]
+}
+
+model Activity {
+  id     String   @id @default(cuid())
+  date   DateTime @default(now())
+  count  Int      @default(1)
+  userId String
+  user   User     @relation(fields: [userId], references: [clerkId], onDelete: Cascade)
+
+  @@index([userId, date])
 }
 
 // --- 1. COURSES MODULE ---
@@ -366,6 +379,7 @@ model Course {
   color            String    @default("bg-blue-500")
   icon             String    @default("📚")
   createdAt        DateTime  @default(now())
+  lastAccessed     DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   modules          Module[]
 
@@ -382,10 +396,11 @@ model Module {
 }
 
 model Topic {
-  id           String  @id @default(uuid())
-  title        String
-  duration     String  @default("15 min")
-  isCompleted  Boolean @default(false)
+  id          String    @id @default(uuid())
+  title       String
+  duration    String    @default("15 min")
+  isCompleted Boolean   @default(false)
+  completedAt DateTime? 
   isFocus      Boolean @default(false)
   note         String? @db.Text
   resourceUrl  String?

@@ -11,8 +11,10 @@ export async function getApplications() {
 
     const apps = await db.jobApplication.findMany({
       where: { userId: userId }, // DATA ISOLATION
-      orderBy: { dateApplied: 'desc' }
+      orderBy: { dateApplied: 'asc' }
     });
+
+    console.log("applications " , apps )
     return apps;
   } catch (error) {
     console.error("GET_APPS_ERROR:", error);

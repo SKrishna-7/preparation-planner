@@ -15,7 +15,11 @@ export async function createStrategicGoal(data: {
 }) {
   try {
     const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
+    console.log("ACTION ATTEMPT BY USER:", userId);
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized: Please sign in again." };
+    };
 
     let finalTarget = 1;
 
@@ -156,4 +160,62 @@ export async function syncGoalWithCourse(courseId: string) {
   } catch (error) {
     console.error("GOAL_SYNC_ERROR:", error);
   }
+}
+
+
+export async function toggleGoalAction(goalId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  // Get current state
+  const goal = await db.goal.findFirst({
+    where: { id: goalId, userId },
+    select: { isDone: true }
+  });
+
+  if (!goal) throw new Error("Goal not found");
+
+  // Toggle
+  await db.goal.update({
+    where: { id: goalId },
+    data: { isDone: !goal.isDone }
+  });
+
+  return { success: true };
+}
+
+export async function getGoalById(goalId: string) {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const goal = await db.goal.findFirst({
+    where: {
+      id: goalId,
+      userId
+    }
+  });
+
+  if (!goal) return null;
+
+  let target = null;
+
+  if (goal.category === "COURSE") {
+    target = await db.course.findFirst({
+      where: { id: goal.targetId ?? undefined, userId },
+      include: {
+        modules: {
+          include: { topics: true }
+        }
+      }
+    });
+  }
+
+  if (goal.category === "MODULE") {
+    target = await db.module.findFirst({
+      where: { id: goal.targetId ?? undefined },
+      include: { topics: true }
+    });
+  }
+
+  return { goal, target };
 }
