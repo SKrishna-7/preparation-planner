@@ -5,6 +5,7 @@ import { Sidebar } from "@components/Sidebar";
 import { MobileSidebar } from "@components/MobileSidebar"; 
 import { ThemeProvider } from "@components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,7 +52,7 @@ export default function RootLayout({
                 </div>
               </main>
             </div>
-
+             <Analytics />
           </ThemeProvider>
         </body>
       </html>
